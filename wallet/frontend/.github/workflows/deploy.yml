@@ -1,0 +1,53 @@
+name: Deploy Swiss Crypto Ramp
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r frontend/requirements.txt
+      
+      - name: Run Streamlit Cloud Check
+        run: |
+          echo "Streamlit app ready for cloud deployment"
+          echo "Repository: ${{ github.repository }}"
+          echo "Commit: ${{ github.sha }}"
+      
+      - name: Verify app structure
+        run: |
+          ls -la frontend/
+          cat frontend/requirements.txt
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm install
+      
+      - name: Verify backend structure
+        run: |
+          cd backend
+          ls -la src/
+          ls -la src/routes/

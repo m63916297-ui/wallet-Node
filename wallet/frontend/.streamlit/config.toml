@@ -1,0 +1,13 @@
+[tool.streamlit]
+runtime = "shim"
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+
+[theme]
+primaryColor = "#1E3A5F"
+backgroundColor = "#F8F9FA"
+secondaryBackgroundColor = "#E9ECEF"
+textColor = "#212529"
+font = "Sans serif"

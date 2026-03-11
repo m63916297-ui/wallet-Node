@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: swiss-crypto-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: swiss_crypto_ramp
+
+  mysql:
+    image: mysql:8.0
+    container_name: swiss-crypto-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: swiss_crypto_ramp
+      MYSQL_USER: swissuser
+      MYSQL_PASSWORD: swisspass
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: swiss-crypto-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/swiss_crypto_ramp
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=swissuser
+      - MYSQL_PASSWORD=swisspass
+      - MYSQL_DATABASE=swiss_crypto_ramp
+      - JWT_SECRET=production-jwt-secret-change-me
+      - CRYPTO_API_URL=https://api.coingecko.com/api/v3
+    depends_on:
+      - mongodb
+      - mysql
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: swiss-crypto-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE_URL=http://backend:3000/api
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+  mysql_data:
