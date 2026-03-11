@@ -109,8 +109,8 @@ def dashboard():
         st.session_state.user = None
         st.rerun()
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["💱 Ramp On", "💰 Ramp Off", "📊 Transactions", "📈 Rates"]
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["💱 Ramp On", "💰 Ramp Off", "📊 Transactions", "📈 Rates", "⚙️ Settings"]
     )
 
     with tab1:
@@ -241,6 +241,144 @@ def dashboard():
                 )
         elif response:
             st.error("Failed to load rates")
+
+    with tab5:
+        st.markdown("### ⚙️ Platform Settings")
+
+        response = api_request("/settings")
+
+        if response and response.status_code == 200:
+            data = response.json()
+            settings = data.get("settings", {})
+
+            for category, items in settings.items():
+                with st.expander(f"📁 {category}"):
+                    for item in items:
+                        col1, col2, col3 = st.columns([2, 2, 1])
+                        with col1:
+                            st.markdown(f"**{item['key']}**")
+                            if item.get("description"):
+                                st.caption(item["description"])
+                        with col2:
+                            if item["dataType"] == "BOOLEAN":
+                                new_value = st.checkbox(
+                                    "Value",
+                                    value=bool(item["value"]),
+                                    key=f"setting_{item['key']}",
+                                )
+                            elif item["dataType"] == "NUMBER":
+                                new_value = st.number_input(
+                                    "Value",
+                                    value=float(item["value"]),
+                                    key=f"setting_{item['key']}",
+                                )
+                            elif item["dataType"] == "JSON":
+                                new_value = st.text_area(
+                                    "Value (JSON)",
+                                    value=json.dumps(item["value"]),
+                                    key=f"setting_{item['key']}",
+                                )
+                            else:
+                                new_value = st.text_input(
+                                    "Value",
+                                    value=str(item["value"]),
+                                    key=f"setting_{item['key']}",
+                                )
+                        with col3:
+                            if item.get("isEditable", False):
+                                if st.button("💾", key=f"save_{item['key']}"):
+                                    try:
+                                        if item["dataType"] == "JSON":
+                                            new_value = json.loads(new_value)
+                                    except:
+                                        pass
+
+                                    update_response = api_request(
+                                        f"/settings/{item['key']}",
+                                        "PUT",
+                                        {"value": new_value},
+                                    )
+                                    if (
+                                        update_response
+                                        and update_response.status_code == 200
+                                    ):
+                                        st.success("Saved!")
+                                        st.rerun()
+                                    else:
+                                        st.error("Error saving")
+                            else:
+                                st.caption("🔒 Locked")
+
+                        st.divider()
+
+            with st.expander("➕ Add New Setting"):
+                with st.form("new_setting_form"):
+                    new_key = st.text_input("Key").upper()
+                    new_value = st.text_input("Value")
+                    new_category = st.selectbox(
+                        "Category",
+                        [
+                            "GENERAL",
+                            "CRYPTO",
+                            "PAYMENT",
+                            "FEES",
+                            "LIMITS",
+                            "API",
+                            "SECURITY",
+                        ],
+                    )
+                    new_desc = st.text_input("Description")
+                    new_type = st.selectbox(
+                        "Data Type", ["STRING", "NUMBER", "BOOLEAN", "JSON"]
+                    )
+                    is_public = st.checkbox("Public", value=True)
+
+                    if st.form_submit_button("Create Setting"):
+                        try:
+                            value = new_value
+                            if new_type == "NUMBER":
+                                value = float(new_value)
+                            elif new_type == "BOOLEAN":
+                                value = new_value.lower() == "true"
+                            elif new_type == "JSON":
+                                value = json.loads(new_value)
+                        except:
+                            st.error("Invalid value format")
+                            value = new_value
+
+                        create_response = api_request(
+                            "/settings",
+                            "POST",
+                            {
+                                "key": new_key,
+                                "value": value,
+                                "category": new_category,
+                                "description": new_desc,
+                                "dataType": new_type,
+                                "isPublic": is_public,
+                            },
+                        )
+                        if create_response and create_response.status_code == 201:
+                            st.success("Setting created!")
+                            st.rerun()
+                        elif create_response:
+                            st.error(
+                                create_response.json().get(
+                                    "message", "Error creating setting"
+                                )
+                            )
+        elif response:
+            st.error("Failed to load settings")
+
+        st.markdown("---")
+        st.markdown("#### 🌐 Public Settings (for users)")
+
+        public_response = api_request("/settings/public")
+        if public_response and public_response.status_code == 200:
+            public_settings = public_response.json()
+            st.json(public_settings)
+        elif public_response:
+            st.error("Failed to load public settings")
 
 
 def main():

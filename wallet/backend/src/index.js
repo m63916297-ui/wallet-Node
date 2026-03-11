@@ -5,9 +5,11 @@ require('dotenv').config();
 
 const connectDB = require('./config/mongodb');
 const { connectMySQL } = require('./config/mysql');
+const Setting = require('./models/Setting');
 
 const authRoutes = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
+const settingsRoutes = require('./routes/settings');
 
 const app = express();
 
@@ -26,6 +28,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/settings', settingsRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -38,6 +41,7 @@ const startServer = async () => {
   try {
     await connectDB();
     await connectMySQL();
+    await Setting.initDefaults();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
